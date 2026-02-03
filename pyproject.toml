@@ -1,0 +1,18 @@
+[project]
+name = "ai-music-composer"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "langchain",
+    "langchain_community",
+    "flask",
+    "synthesizer",
+    "music21",
+    "streamlit",
+    "python-dotenv",
+    "langchain_core",
+    "langchain_groq",
+    "scipy"
+]

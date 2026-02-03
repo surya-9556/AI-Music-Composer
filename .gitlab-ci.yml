@@ -1,0 +1,53 @@
+image: google/cloud-sdk:latest
+
+stages:
+  - checkout
+  - build
+  - deploy
+
+variables:
+  PROJECT_ID: "project-6f794ff4-9f19-406f-a91"
+  REGION: "us-central1"
+  REPO: "llmops-repo"
+  REGISTRY: "us-central1-docker.pkg.dev"
+  CLUSTER: "music-ai-app"
+  IMAGE: "$REGISTRY/$PROJECT_ID/$REPO/llmops-app:latest"
+
+checkout_code:
+  stage: checkout
+  script:
+    - echo "Code Checked out..." # Normally you'd use 'git checkout' but GitLab does this automatically
+
+docker_build_image:
+  stage: build
+  # image: google/cloud-sdk:latest
+  services:
+    - name: docker:dind
+      command: ["--tls=false"]
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    # - apt-get update
+    # - apt-get install -y docker.io
+    # - docker --version
+    - curl -fsSL https://get.docker.com | sh
+    - docker --version
+
+    - echo "$GCP_SA_KEY" | base64 -d > key.json
+    - gcloud auth activate-service-account --key-file=key.json
+    - gcloud auth configure-docker $REGISTRY --quiet
+  script:
+    - docker build -t $IMAGE .
+    - docker push $IMAGE
+
+deploy_to_gke:
+  stage: deploy
+  # image: google/cloud-sdk:latest
+  before_script:
+    - echo "$GCP_SA_KEY" | base64 -d > key.json
+    - gcloud auth activate-service-account --key-file=key.json
+    - gcloud auth configure-docker $REGISTRY
+    - gcloud container clusters get-credentials $CLUSTER --region $REGION --project $PROJECT_ID
+  script:
+    - kubectl apply -f kubernetes-deployment.yaml
